@@ -9,7 +9,6 @@ import { configType } from './types';
 import { getConfig } from './features/config';
 import { startCore, startCloudflared } from './features/start';
 import { listenPort } from './features/listenPort';
-import { connectCluster } from './features/cluster';
 
 dotenv.config();
 const app = express();
@@ -54,55 +53,6 @@ app.get('/generate_200{*any}', (req, res) => {
   });
 
   start();
-
-  const clusterServer = connectCluster(config, async (ws, type, data) => {
-    try {
-      switch (type) {
-        case 'refresh_config': {
-          config = await getConfig();
-          break;
-        }
-        case 'get_env': {
-          ws.send(JSON.stringify({ type: 'get_env', data: process.env }));
-          break;
-        }
-        case 'process_restart': {
-          const ori_disable_exit_protect = config.disable_exit_protect;
-          config.disable_exit_protect = true;
-          if (!isNaN(pid_core)) process.kill(pid_core);
-          if (!isNaN(pid_cloudflared)) process.kill(pid_cloudflared);
-          pid_core = NaN;
-          pid_cloudflared = NaN;
-          start(true);
-          setTimeout(() => {
-            config.disable_exit_protect = ori_disable_exit_protect;
-          }, 500);
-          break;
-        }
-        case 'process_update': {
-          const ori_disable_exit_protect = config.disable_exit_protect;
-          config.disable_exit_protect = true;
-          if (!isNaN(pid_core)) process.kill(pid_core);
-          if (!isNaN(pid_cloudflared)) process.kill(pid_cloudflared);
-          pid_core = NaN;
-          pid_cloudflared = NaN;
-          fs.rmSync(path.resolve(process.cwd(), config.core_path));
-          fs.rmSync(path.resolve(process.cwd(), config.cloudflared_path));
-          start(true);
-          setTimeout(() => {
-            config.disable_exit_protect = ori_disable_exit_protect;
-          }, 500);
-          break;
-        }
-        case 'push_tasks':
-          (data as any[]).forEach(task => {});
-          break;
-
-        default:
-          break;
-      }
-    } catch (error) {}
-  });
 })();
 
 async function start(noListenPort = false) {
@@ -161,11 +111,7 @@ async function start(noListenPort = false) {
 
 async function proxyRemotePage(res, url: string, contentType = 'text/html; charset=utf-8') {
   try {
-    const r = await fetch(url, {
-      headers: {
-        'User-Agent': 'proxy-box',
-      },
-    });
+    const r = await fetch(url);
 
     res.status(r.status);
     res.setHeader('Content-Type', contentType);

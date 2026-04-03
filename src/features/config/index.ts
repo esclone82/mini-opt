@@ -1,30 +1,10 @@
 import fs from 'fs';
 import { configType } from '../../types';
 import defaultConfig from './default';
-import { getClusterConfig } from '../cluster';
 
-export async function getConfig() {
-  let config = getConfigLocally();
-  config = { ...config, ...(await getClusterConfig(config)) };
-  return config;
-}
-
-export function editConfig(config: configType, updated: Record<string, any>) {
-  for (const key in updated) {
-    const element = updated[key];
-    config[key] = element;
-  }
-}
-
-export function getConfigLocally() {
+export function getConfig() {
   let config_json: configType;
-  let cluster_config: {
-    cluster_enabled?: boolean;
-    cluster_server_url?: string;
-    cluster_server_auth?: string;
-    cluster_client_uuid?: string;
-    cluster_exec_enabled?: boolean;
-  } = {};
+
   try {
     config_json = JSON.parse(process.env.CONFIG);
   } catch {
@@ -34,23 +14,9 @@ export function getConfigLocally() {
       config_json = {} as any;
     }
   }
-  try {
-    if (process.env.CLUSTER) {
-      let CLUSTER = process.env.CLUSTER;
-      let splits = CLUSTER.split(';');
-      cluster_config = {
-        cluster_enabled: true,
-        cluster_server_url: splits[0],
-        cluster_server_auth: splits[1],
-        cluster_client_uuid: splits[2] ?? defaultConfig.cluster_client_uuid,
-        cluster_exec_enabled: Boolean(splits[3]),
-      };
-    }
-  } catch (error) {}
 
   return {
     ...defaultConfig,
-    ...cluster_config,
     ...config_json,
 
     // please use base64 encode
