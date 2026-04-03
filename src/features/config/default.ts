@@ -17,7 +17,7 @@ const config: configType = {
   xhttp_extra: {
     xPaddingBytes: '100-1000', // Default, same as client
     scMaxEachPostBytes: '100000000', // 100 MB, packet-up only
-    scStreamUpServerSecs: '80', // stream-up, server only
+    scStreamUpServerSecs: '90', // stream-up, server only
   },
 
   tls_enabled: false,
